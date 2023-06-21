@@ -6,13 +6,14 @@ namespace InputAPI
 {
 	enum Type
 	{
-		Keyboard,
-		SDLController,
-		XInput,
 		DirectInput,
 		DSUClient,
 		GameCube,
+		Joycon,
+		Keyboard,
+		SDLController,
 		Wiimote,
+		XInput,
 
 		WGIGamepad,
 		WGIRawController,
@@ -24,24 +25,26 @@ namespace InputAPI
 	{
 		switch (type)
 		{
-		case Keyboard:
-			return "Keyboard";
 		case DirectInput:
 			return "DirectInput";
-		case XInput:
-			return "XInput";
-		case Wiimote:
-			return "Wiimote";
-		case GameCube:
-			return "GameCube";
 		case DSUClient:
 			return "DSUController";
+		case GameCube:
+			return "GameCube";
+		case Joycon:
+			return "Joycon";
+		case Keyboard:
+			return "Keyboard";
+		case SDLController:
+			return "SDLController";
+		case Wiimote:
+			return "Wiimote";
+		case XInput:
+			return "XInput";
 		case WGIGamepad:
 			return "WGIGamepad";
 		case WGIRawController:
 			return "WGIRawController";
-		case SDLController:
-			return "SDLController";
 		default:
 			break;
 		}
@@ -51,22 +54,24 @@ namespace InputAPI
 
 	constexpr Type from_string(std::string_view str)
 	{
-		if (str == to_string(Keyboard))
-			return Keyboard;
-		else if (str == to_string(DirectInput))
+		if (str == to_string(DirectInput))
 			return DirectInput;
-		else if (str == to_string(XInput))
-			return XInput;
-		else if (str == to_string(Wiimote))
-			return Wiimote;
-		else if (str == to_string(GameCube))
-			return GameCube;
 		else if (str == to_string(DSUClient))
 			return DSUClient;
-		else if (str == to_string(SDLController))
-			return SDLController;
 		else if (str == "DSU") // legacy
 			return DSUClient;
+		else if (str == to_string(GameCube))
+			return GameCube;
+		else if (str == to_string(Joycon))
+			return Joycon;
+		else if (str == to_string(Keyboard))
+				return Keyboard;
+		else if (str == to_string(SDLController))
+			return SDLController;
+		else if (str == to_string(Wiimote))
+			return Wiimote;
+		else if (str == to_string(XInput))
+			return XInput;
 		
 		//else if (str == "WGIGamepad")
 		//	return WGIGamepad;

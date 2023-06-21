@@ -27,6 +27,25 @@ add_library(CemuInput
 	api/GameCube/GameCubeControllerProvider.h
 	api/GameCube/GameCubeControllerProvider.cpp
 	api/GameCube/GameCubeController.h
+	api/Joycon/JoyconCalibration.cpp
+	api/Joycon/JoyconCalibration.h
+	api/Joycon/JoyconController.cpp
+	api/Joycon/JoyconController.h
+	api/Joycon/JoyconControllerProvider.cpp
+	api/Joycon/JoyconControllerProvider.h
+	api/Joycon/JoyconCommonProtocol.cpp
+	api/Joycon/JoyconCommonProtocol.h
+	api/Joycon/JoyconDriver.cpp
+	api/Joycon/JoyconDriver.h
+	api/Joycon/JoyconGenericFunctions.cpp
+	api/Joycon/JoyconGenericFunctions.h
+	api/Joycon/JoyconNfc.cpp
+	api/Joycon/JoyconNfc.h
+	api/Joycon/JoyconPoller.cpp
+	api/Joycon/JoyconPoller.h
+	api/Joycon/JoyconRumble.cpp
+	api/Joycon/JoyconRumble.h
+	api/Joycon/JoyconTypes.h
 	emulated/ProController.cpp
 	emulated/EmulatedController.h
 	emulated/EmulatedController.cpp

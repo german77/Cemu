@@ -30,6 +30,7 @@ InputManager::InputManager()
 #endif
 #if HAS_SDL
 	create_provider<SDLControllerProvider>();
+	create_provider<JoyconControllerProvider>();
 #endif
 #if HAS_XINPUT
 	create_provider<XInputControllerProvider>();

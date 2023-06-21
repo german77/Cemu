@@ -9,6 +9,7 @@
 #include "input/api/Keyboard/KeyboardController.h"
 #include "input/api/DSU/DSUController.h"
 #include "input/api/GameCube/GameCubeController.h"
+#include "input/api/Joycon/JoyconController.h"
 
 #if BOOST_OS_WINDOWS
 #include "input/api/XInput/XInputController.h"
@@ -74,6 +75,16 @@ ControllerPtr ControllerFactory::CreateController(InputAPI::Type api, std::strin
 				return std::make_shared<SDLController>(guid, guid_index);
 			else
 				return std::make_shared<SDLController>(guid, guid_index, display_name);
+		}
+	case InputAPI::Joycon:
+		{
+			const auto index = uuid.find_first_of('_');
+			if (index == std::string_view::npos)
+				throw std::invalid_argument(fmt::format("invalid joycon uuid format: {}", uuid));
+
+			const auto type = ConvertString<int>(uuid.substr(0, index));
+			const auto controller_index = ConvertString<int>(uuid.substr(index + 1));
+			return std::make_shared<JoyconController>(type, controller_index);
 		}
 #endif
 #if HAS_DSU
