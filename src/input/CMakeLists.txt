@@ -39,8 +39,6 @@ add_library(CemuInput
 	api/Joycon/JoyconDriver.h
 	api/Joycon/JoyconGenericFunctions.cpp
 	api/Joycon/JoyconGenericFunctions.h
-	api/Joycon/JoyconNfc.cpp
-	api/Joycon/JoyconNfc.h
 	api/Joycon/JoyconPoller.cpp
 	api/Joycon/JoyconPoller.h
 	api/Joycon/JoyconRumble.cpp

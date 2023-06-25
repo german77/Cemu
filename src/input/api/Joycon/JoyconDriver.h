@@ -43,14 +43,6 @@ public:
     DriverResult SetLedConfig(uint8 led_pattern);
     DriverResult SetPassiveMode();
     DriverResult SetActiveMode();
-    DriverResult SetNfcMode();
-    DriverResult StartNfcPolling();
-    DriverResult StopNfcPolling();
-    DriverResult ReadAmiiboData(std::vector<uint8>& out_data);
-    DriverResult WriteNfcData(std::span<const uint8> data);
-    DriverResult ReadMifareData(std::span<const MifareReadChunk> request,
-                                std::span<MifareReadData> out_data);
-    DriverResult WriteMifareData(std::span<const MifareWriteChunk> request);
 
     JCState GetState();
 
@@ -91,7 +83,6 @@ private:
     // Protocol Features
     std::unique_ptr<CalibrationProtocol> calibration_protocol;
     std::unique_ptr<GenericProtocol> generic_protocol;
-    std::unique_ptr<NfcProtocol> nfc_protocol;
     std::unique_ptr<JoyconPoller> joycon_poller;
     std::unique_ptr<RumbleProtocol> rumble_protocol;
 
@@ -102,15 +93,11 @@ private:
     std::shared_ptr<JoyconHandle> hidapi_handle;
     std::chrono::time_point<std::chrono::steady_clock> last_update;
 
-    // External device status
-    bool amiibo_detected{};
-
     // Hardware configuration
     uint8 leds{};
     ReportMode mode{};
     bool passive_enabled{};   // Low power mode, Ideal for multiple controllers at the same time
     bool motion_enabled{};    // Enables motion input
-    bool nfc_enabled{};       // Enables Amiibo detection
     bool vibration_enabled{}; // Allows vibrations
 
     // Calibration data
