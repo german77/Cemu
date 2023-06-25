@@ -4,18 +4,10 @@
 
 #include "input/api/ControllerProvider.h"
 
-// Pad Identifier of data source
-struct PadIdentifier {
-	uint64 guid{};
-	std::size_t port{};
-	std::size_t pad{};
-
-	friend constexpr bool operator==(const PadIdentifier&, const PadIdentifier&) = default;
-};
-
 namespace InputCommon::Joycon {
 	struct MotionData;
 	struct TagInfo;
+	struct JCState;
 	enum class ControllerType : uint8;
 	enum class DriverResult;
 	class JoyconDriver;
@@ -36,7 +28,6 @@ public:
 
 	std::vector<std::shared_ptr<ControllerBase>> get_controllers() override;
 
-	uint32 get_adapter_count() const;
 	bool has_battery(uint32 controller_type, uint32 controller_index) const;
 	bool has_low_battery(uint32 controller_type, uint32 controller_index) const;
 	bool has_motion(uint32 controller_type, uint32 controller_index) const;
@@ -45,21 +36,7 @@ public:
 
 	void set_rumble_state(uint32 controller_type, uint32 controller_index, bool state);
 	
-	struct JCState
-	{
-		bool valid = false;
-		uint16 button = 0;
-
-		uint8 lstick_x = 0;
-		uint8 lstick_y = 0;
-
-		uint8 rstick_x = 0;
-		uint8 rstick_y = 0;
-
-		uint8 lstick = 0;
-		uint8 rstick = 0;
-	};
-	JCState get_state(uint32 adapter_index, uint32 index);
+	InputCommon::Joycon::JCState get_state(uint32 adapter_index, uint32 index);
 
 private:
 	std::atomic_bool m_running = false;
@@ -80,12 +57,6 @@ private:
 
 	/// Returns a JoyconHandle corresponding to a PadIdentifier
 	std::shared_ptr<InputCommon::Joycon::JoyconDriver> GetHandle(uint32 controller_type, uint32 controller_index) const;
-
-	void OnBatteryUpdate(std::size_t port, InputCommon::Joycon::ControllerType type, uint8 value);
-	void OnButtonUpdate(std::size_t port, InputCommon::Joycon::ControllerType type, int id, bool value);
-	void OnStickUpdate(std::size_t port, InputCommon::Joycon::ControllerType type, int id, float value);
-	void OnMotionUpdate(std::size_t port, InputCommon::Joycon::ControllerType type, int id,
-		const InputCommon::Joycon::MotionData& value);
 
 	std::mutex m_writer_mutex;
 	std::condition_variable m_writer_cond;

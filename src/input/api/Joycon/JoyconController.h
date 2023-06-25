@@ -31,6 +31,7 @@ public:
 	MotionSample get_motion_sample() override;
 
 	std::string get_button_name(uint64 button) const override;
+	std::string GetJoyconName(uint32 type) const;
 
 protected:
 	ControllerState raw_state() override;

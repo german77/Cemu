@@ -11,58 +11,51 @@ JoyconPoller::JoyconPoller(ControllerType device_type_, JoyStickCalibration left
     : device_type{device_type_}, left_stick_calibration{left_stick_calibration_},
       right_stick_calibration{right_stick_calibration_}, motion_calibration{motion_calibration_} {}
 
-void JoyconPoller::SetCallbacks(const JoyconCallbacks& callbacks_) {
-    callbacks = std::move(callbacks_);
-}
 
-void JoyconPoller::ReadActiveMode(std::span<uint8> buffer, const MotionStatus& motion_status) {
+void JoyconPoller::ReadActiveMode(JCState& state, std::span<uint8> buffer, const MotionStatus& motion_status) {
     InputReportActive data{};
     memcpy(&data, buffer.data(), sizeof(InputReportActive));
 
     switch (device_type) {
     case ControllerType::Left:
-        UpdateActiveLeftPadInput(data, motion_status);
+        UpdateActiveLeftPadInput(state, data, motion_status);
         break;
     case ControllerType::Right:
-        UpdateActiveRightPadInput(data, motion_status);
+        UpdateActiveRightPadInput(state, data, motion_status);
         break;
     case ControllerType::Pro:
-        UpdateActiveProPadInput(data, motion_status);
+        UpdateActiveProPadInput(state, data, motion_status);
         break;
     default:
         break;
     }
 }
 
-void JoyconPoller::ReadPassiveMode(std::span<uint8> buffer) {
+void JoyconPoller::ReadPassiveMode(JCState& state, std::span<uint8> buffer) {
     InputReportPassive data{};
     memcpy(&data, buffer.data(), sizeof(InputReportPassive));
 
     switch (device_type) {
     case ControllerType::Left:
-        UpdatePassiveLeftPadInput(data);
+        UpdatePassiveLeftPadInput(state, data);
         break;
     case ControllerType::Right:
-        UpdatePassiveRightPadInput(data);
+        UpdatePassiveRightPadInput(state, data);
         break;
     case ControllerType::Pro:
-        UpdatePassiveProPadInput(data);
+        UpdatePassiveProPadInput(state, data);
         break;
     default:
         break;
     }
 }
 
-void JoyconPoller::ReadNfcIRMode(std::span<uint8> buffer, const MotionStatus& motion_status) {
+void JoyconPoller::ReadNfcIRMode(JCState& state, std::span<uint8> buffer, const MotionStatus& motion_status) {
     // This mode is compatible with the active mode
-    ReadActiveMode(buffer, motion_status);
+    ReadActiveMode(state, buffer, motion_status);
 }
 
-void JoyconPoller::UpdateAmiibo(const Joycon::TagInfo& tag_info) {
-    callbacks.on_amiibo_data(tag_info);
-}
-
-void JoyconPoller::UpdateActiveLeftPadInput(const InputReportActive& input,
+void JoyconPoller::UpdateActiveLeftPadInput(JCState& state, const InputReportActive& input,
                                             const MotionStatus& motion_status) {
     static constexpr std::array<Joycon::PadButton, 11> left_buttons{
         Joycon::PadButton::Down,    Joycon::PadButton::Up,     Joycon::PadButton::Right,
@@ -73,11 +66,7 @@ void JoyconPoller::UpdateActiveLeftPadInput(const InputReportActive& input,
 
     const uint32 raw_button =
         static_cast<uint32>(input.button_input[2] | ((input.button_input[1] & 0b00101001) << 16));
-    for (std::size_t i = 0; i < left_buttons.size(); ++i) {
-        const bool button_status = (raw_button & static_cast<uint32>(left_buttons[i])) != 0;
-        const int button = static_cast<int>(left_buttons[i]);
-        callbacks.on_button_data(button, button_status);
-    }
+    state.button = raw_button;
 
     const uint16 raw_left_axis_x =
         static_cast<uint16>(input.left_stick_state[0] | ((input.left_stick_state[1] & 0xf) << 8));
@@ -85,8 +74,8 @@ void JoyconPoller::UpdateActiveLeftPadInput(const InputReportActive& input,
         static_cast<uint16>((input.left_stick_state[1] >> 4) | (input.left_stick_state[2] << 4));
     const float left_axis_x = GetAxisValue(raw_left_axis_x, left_stick_calibration.x);
     const float left_axis_y = GetAxisValue(raw_left_axis_y, left_stick_calibration.y);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickX), left_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickY), left_axis_y);
+    state.lstick_x = left_axis_x;
+    state.lstick_y = left_axis_y;
 
     if (motion_status.is_enabled) {
         auto left_motion = GetMotionInput(input, motion_status);
@@ -94,11 +83,12 @@ void JoyconPoller::UpdateActiveLeftPadInput(const InputReportActive& input,
         left_motion.accel_y = -left_motion.accel_y;
         left_motion.accel_z = -left_motion.accel_z;
         left_motion.gyro_x = -left_motion.gyro_x;
-        callbacks.on_motion_data(static_cast<int>(PadMotion::LeftMotion), left_motion);
+        //callbacks.on_motion_data(static_cast<int>(PadMotion::LeftMotion), left_motion);
     }
+    state.valid = true;
 }
 
-void JoyconPoller::UpdateActiveRightPadInput(const InputReportActive& input,
+void JoyconPoller::UpdateActiveRightPadInput(JCState& state, const InputReportActive& input,
                                              const MotionStatus& motion_status) {
     static constexpr std::array<Joycon::PadButton, 11> right_buttons{
         Joycon::PadButton::Y,    Joycon::PadButton::X,       Joycon::PadButton::B,
@@ -109,11 +99,7 @@ void JoyconPoller::UpdateActiveRightPadInput(const InputReportActive& input,
 
     const uint32 raw_button =
         static_cast<uint32>((input.button_input[0] << 8) | (input.button_input[1] << 16));
-    for (std::size_t i = 0; i < right_buttons.size(); ++i) {
-        const bool button_status = (raw_button & static_cast<uint32>(right_buttons[i])) != 0;
-        const int button = static_cast<int>(right_buttons[i]);
-        callbacks.on_button_data(button, button_status);
-    }
+    state.button = raw_button;
 
     const uint16 raw_right_axis_x =
         static_cast<uint16>(input.right_stick_state[0] | ((input.right_stick_state[1] & 0xf) << 8));
@@ -121,8 +107,8 @@ void JoyconPoller::UpdateActiveRightPadInput(const InputReportActive& input,
         static_cast<uint16>((input.right_stick_state[1] >> 4) | (input.right_stick_state[2] << 4));
     const float right_axis_x = GetAxisValue(raw_right_axis_x, right_stick_calibration.x);
     const float right_axis_y = GetAxisValue(raw_right_axis_y, right_stick_calibration.y);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickX), right_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickY), right_axis_y);
+    state.rstick_x = right_axis_x;
+    state.rstick_y = right_axis_y;
 
     if (motion_status.is_enabled) {
         auto right_motion = GetMotionInput(input, motion_status);
@@ -130,11 +116,12 @@ void JoyconPoller::UpdateActiveRightPadInput(const InputReportActive& input,
         right_motion.accel_x = -right_motion.accel_x;
         right_motion.accel_y = -right_motion.accel_y;
         right_motion.gyro_z = -right_motion.gyro_z;
-        callbacks.on_motion_data(static_cast<int>(PadMotion::RightMotion), right_motion);
+        //callbacks.on_motion_data(static_cast<int>(PadMotion::RightMotion), right_motion);
     }
+    state.valid = true;
 }
 
-void JoyconPoller::UpdateActiveProPadInput(const InputReportActive& input,
+void JoyconPoller::UpdateActiveProPadInput(JCState& state, const InputReportActive& input,
                                            const MotionStatus& motion_status) {
     static constexpr std::array<Joycon::PadButton, 18> pro_buttons{
         Joycon::PadButton::Down,  Joycon::PadButton::Up,      Joycon::PadButton::Right,
@@ -147,11 +134,7 @@ void JoyconPoller::UpdateActiveProPadInput(const InputReportActive& input,
 
     const uint32 raw_button = static_cast<uint32>(input.button_input[2] | (input.button_input[0] << 8) |
                                             (input.button_input[1] << 16));
-    for (std::size_t i = 0; i < pro_buttons.size(); ++i) {
-        const bool button_status = (raw_button & static_cast<uint32>(pro_buttons[i])) != 0;
-        const int button = static_cast<int>(pro_buttons[i]);
-        callbacks.on_button_data(button, button_status);
-    }
+    state.button = raw_button;
 
     const uint16 raw_left_axis_x =
         static_cast<uint16>(input.left_stick_state[0] | ((input.left_stick_state[1] & 0xf) << 8));
@@ -166,84 +149,54 @@ void JoyconPoller::UpdateActiveProPadInput(const InputReportActive& input,
     const float left_axis_y = GetAxisValue(raw_left_axis_y, left_stick_calibration.y);
     const float right_axis_x = GetAxisValue(raw_right_axis_x, right_stick_calibration.x);
     const float right_axis_y = GetAxisValue(raw_right_axis_y, right_stick_calibration.y);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickX), left_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickY), left_axis_y);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickX), right_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickY), right_axis_y);
+    state.lstick_x = left_axis_x;
+    state.lstick_y = left_axis_y;
+    state.rstick_x = right_axis_x;
+    state.rstick_y = right_axis_y;
 
     if (motion_status.is_enabled) {
         auto pro_motion = GetMotionInput(input, motion_status);
         pro_motion.gyro_x = -pro_motion.gyro_x;
         pro_motion.accel_y = -pro_motion.accel_y;
         pro_motion.accel_z = -pro_motion.accel_z;
-        callbacks.on_motion_data(static_cast<int>(PadMotion::LeftMotion), pro_motion);
-        callbacks.on_motion_data(static_cast<int>(PadMotion::RightMotion), pro_motion);
+        //callbacks.on_motion_data(static_cast<int>(PadMotion::LeftMotion), pro_motion);
+        //callbacks.on_motion_data(static_cast<int>(PadMotion::RightMotion), pro_motion);
     }
+    state.valid = true;
 }
 
-void JoyconPoller::UpdatePassiveLeftPadInput(const InputReportPassive& input) {
-    static constexpr std::array<PassivePadButton, 11> left_buttons{
-        PassivePadButton::Down_A,  PassivePadButton::Right_X, PassivePadButton::Left_B,
-        PassivePadButton::Up_Y,    PassivePadButton::SL,      PassivePadButton::SR,
-        PassivePadButton::L_R,     PassivePadButton::ZL_ZR,   PassivePadButton::Minus,
-        PassivePadButton::Capture, PassivePadButton::StickL,
-    };
-
-    for (auto left_button : left_buttons) {
-        const bool button_status = (input.button_input & static_cast<uint32>(left_button)) != 0;
-        const int button = static_cast<int>(left_button);
-        callbacks.on_button_data(button, button_status);
-    }
+void JoyconPoller::UpdatePassiveLeftPadInput(JCState& state, const InputReportPassive& input) {
+    state.button = input.button_input;
 
     const auto [left_axis_x, left_axis_y] =
         GetPassiveAxisValue(static_cast<PassivePadStick>(input.stick_state));
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickX), left_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickY), left_axis_y);
+    state.lstick_x = left_axis_x;
+    state.lstick_y = left_axis_y;
+    state.valid = true;
 }
 
-void JoyconPoller::UpdatePassiveRightPadInput(const InputReportPassive& input) {
-    static constexpr std::array<PassivePadButton, 11> right_buttons{
-        PassivePadButton::Down_A, PassivePadButton::Right_X, PassivePadButton::Left_B,
-        PassivePadButton::Up_Y,   PassivePadButton::SL,      PassivePadButton::SR,
-        PassivePadButton::L_R,    PassivePadButton::ZL_ZR,   PassivePadButton::Plus,
-        PassivePadButton::Home,   PassivePadButton::StickR,
-    };
-
-    for (auto right_button : right_buttons) {
-        const bool button_status = (input.button_input & static_cast<uint32>(right_button)) != 0;
-        const int button = static_cast<int>(right_button);
-        callbacks.on_button_data(button, button_status);
-    }
+void JoyconPoller::UpdatePassiveRightPadInput(JCState& state, const InputReportPassive& input) {
+    state.button = input.button_input;
 
     const auto [right_axis_x, right_axis_y] =
         GetPassiveAxisValue(static_cast<PassivePadStick>(input.stick_state));
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickX), right_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickY), right_axis_y);
+    state.rstick_x = right_axis_x;
+    state.rstick_y = right_axis_y;
+    state.valid = true;
 }
 
-void JoyconPoller::UpdatePassiveProPadInput(const InputReportPassive& input) {
-    static constexpr std::array<PassivePadButton, 14> pro_buttons{
-        PassivePadButton::Down_A, PassivePadButton::Right_X, PassivePadButton::Left_B,
-        PassivePadButton::Up_Y,   PassivePadButton::SL,      PassivePadButton::SR,
-        PassivePadButton::L_R,    PassivePadButton::ZL_ZR,   PassivePadButton::Minus,
-        PassivePadButton::Plus,   PassivePadButton::Capture, PassivePadButton::Home,
-        PassivePadButton::StickL, PassivePadButton::StickR,
-    };
-
-    for (auto pro_button : pro_buttons) {
-        const bool button_status = (input.button_input & static_cast<uint32>(pro_button)) != 0;
-        const int button = static_cast<int>(pro_button);
-        callbacks.on_button_data(button, button_status);
-    }
+void JoyconPoller::UpdatePassiveProPadInput(JCState& state, const InputReportPassive& input) {
+    state.button = input.button_input;
 
     const auto [left_axis_x, left_axis_y] =
         GetPassiveAxisValue(static_cast<PassivePadStick>(input.stick_state & 0xf));
     const auto [right_axis_x, right_axis_y] =
         GetPassiveAxisValue(static_cast<PassivePadStick>(input.stick_state >> 4));
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickX), left_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::LeftStickY), left_axis_y);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickX), right_axis_x);
-    callbacks.on_stick_data(static_cast<int>(PadAxes::RightStickY), right_axis_y);
+    state.lstick_x = left_axis_x;
+    state.lstick_y = left_axis_y;
+    state.rstick_x = right_axis_x;
+    state.rstick_y = right_axis_y;
+    state.valid = true;
 }
 
 float JoyconPoller::GetAxisValue(uint16 raw_value, Joycon::JoyStickAxisCalibration calibration) const {

@@ -57,14 +57,38 @@ std::vector<ControllerPtr> JoyconControllerProvider::get_controllers()
 {
 	std::vector<ControllerPtr> result;
 
+	for (const auto& device : m_left_joycons) {
+		if (!device) {
+			continue;
+		}
+		if (device->IsConnected()) {
+			const uint32 type = static_cast<uint32>(device->GetDeviceType());
+			const uint32 index = static_cast<uint32>(device->GetDevicePort());
+			result.emplace_back(std::make_shared<JoyconController>(type, index));
+		}
+	}
+	for (const auto& device : m_right_joycons) {
+		if (!device) {
+			continue;
+		}
+		if (device->IsConnected()) {
+			const uint32 type = static_cast<uint32>(device->GetDeviceType());
+			const uint32 index = static_cast<uint32>(device->GetDevicePort());
+			result.emplace_back(std::make_shared<JoyconController>(type, index));
+		}
+	}
+	for (const auto& device : m_pro_controller) {
+		if (!device) {
+			continue;
+		}
+		if (device->IsConnected()) {
+			const uint32 type = static_cast<uint32>(device->GetDeviceType());
+			const uint32 index = static_cast<uint32>(device->GetDevicePort());
+			result.emplace_back(std::make_shared<JoyconController>(type, index));
+		}
+	}
+
 	return result;
-}
-
-uint32 JoyconControllerProvider::get_adapter_count() const
-{
-	uint32 adapter_count = 0;
-
-	return adapter_count;
 }
 
 bool JoyconControllerProvider::has_battery(uint32 controller_type, uint32 controller_index) const
@@ -117,35 +141,21 @@ void JoyconControllerProvider::set_rumble_state(uint32 controller_type, uint32 c
 {
 }
 
-JoyconControllerProvider::JCState JoyconControllerProvider::get_state(uint32 adapter_index, uint32 index)
+InputCommon::Joycon::JCState JoyconControllerProvider::get_state(uint32 controller_type, uint32 controller_index)
 {
-	if (adapter_index >= m_left_joycons.size())
+	const auto handle = GetHandle(controller_type, controller_index);
+	if (handle == nullptr) {
 		return {};
-
-	if (index >= kMaxIndex)
+	}
+	if (!handle->IsConnected()) {
 		return {};
-
-	return {};
+	}
+	return handle->GetState();
 }
 
 #ifdef interface
 #undef interface
 #endif
-
-
-void JoyconControllerProvider::OnBatteryUpdate(std::size_t port, InputCommon::Joycon::ControllerType type,
-	uint8 value) {
-}
-
-void JoyconControllerProvider::OnButtonUpdate(std::size_t port, InputCommon::Joycon::ControllerType type, int id, bool value) {
-}
-
-void JoyconControllerProvider::OnStickUpdate(std::size_t port, InputCommon::Joycon::ControllerType type, int id, float value) {
-}
-
-void JoyconControllerProvider::OnMotionUpdate(std::size_t port, InputCommon::Joycon::ControllerType type, int id,
-	const InputCommon::Joycon::MotionData& value) {
-}
 
 bool JoyconControllerProvider::IsDeviceNew(SDL_hid_device_info* device_info) const {
 	InputCommon::Joycon::ControllerType type{};
@@ -215,24 +225,7 @@ void JoyconControllerProvider::RegisterNewDevice(SDL_hid_device_info* device_inf
 		result = handle->RequestDeviceAccess(device_info);
 	}
 	if (result == InputCommon::Joycon::DriverResult::Success) {
-		const std::size_t port = handle->GetDevicePort();
-		const InputCommon::Joycon::JoyconCallbacks callbacks{
-			.on_battery_data = {[this, port, type](uint8 value) {
-				OnBatteryUpdate(port, type, value);
-			}},
-			.on_button_data = {[this, port, type](int id, bool value) {
-				OnButtonUpdate(port, type, id, value);
-			}},
-			.on_stick_data = {[this, port, type](int id, float value) {
-				OnStickUpdate(port, type, id, value);
-			}},
-			.on_motion_data = {[this, port, type](int id, const InputCommon::Joycon::MotionData& value) {
-				OnMotionUpdate(port, type, id, value);
-			}},
-		};
-
 		handle->InitializeDevice();
-		handle->SetCallbacks(callbacks);
 	}
 }
 

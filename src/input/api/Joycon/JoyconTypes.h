@@ -656,12 +656,19 @@ struct MCUCommandResponse {
 };
 static_assert(sizeof(MCUCommandResponse) == 0x170, "MCUCommandResponse is an invalid size");
 
-struct JoyconCallbacks {
-    std::function<void(uint8)> on_battery_data;
-    std::function<void(int, bool)> on_button_data;
-    std::function<void(int, float)> on_stick_data;
-    std::function<void(int, const MotionData&)> on_motion_data;
-    std::function<void(const Joycon::TagInfo&)> on_amiibo_data;
+struct JCState
+{
+    bool valid = false;
+    uint32 button = 0;
+
+    float lstick_x = 0;
+    float lstick_y = 0;
+
+    float rstick_x = 0;
+    float rstick_y = 0;
+
+    float lstick = 0;
+    float rstick = 0;
 };
 
 } // namespace InputCommon::Joycon

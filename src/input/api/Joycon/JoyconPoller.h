@@ -22,29 +22,25 @@ public:
                  JoyStickCalibration right_stick_calibration_,
                  MotionCalibration motion_calibration_);
 
-    void SetCallbacks(const JoyconCallbacks& callbacks_);
-
     /// Handles data from passive packages
-    void ReadPassiveMode(std::span<uint8> buffer);
+    void ReadPassiveMode(JCState& state, std::span<uint8> buffer);
 
     /// Handles data from active packages
-    void ReadActiveMode(std::span<uint8> buffer, const MotionStatus& motion_status);
+    void ReadActiveMode(JCState& state, std::span<uint8> buffer, const MotionStatus& motion_status);
 
     /// Handles data from nfc or ir packages
-    void ReadNfcIRMode(std::span<uint8> buffer, const MotionStatus& motion_status);
-
-    void UpdateAmiibo(const Joycon::TagInfo& tag_info);
+    void ReadNfcIRMode(JCState& state, std::span<uint8> buffer, const MotionStatus& motion_status);
 
 private:
-    void UpdateActiveLeftPadInput(const InputReportActive& input,
+    void UpdateActiveLeftPadInput(JCState& state, const InputReportActive& input,
                                   const MotionStatus& motion_status);
-    void UpdateActiveRightPadInput(const InputReportActive& input,
+    void UpdateActiveRightPadInput(JCState& state, const InputReportActive& input,
                                    const MotionStatus& motion_status);
-    void UpdateActiveProPadInput(const InputReportActive& input, const MotionStatus& motion_status);
+    void UpdateActiveProPadInput(JCState& state, const InputReportActive& input, const MotionStatus& motion_status);
 
-    void UpdatePassiveLeftPadInput(const InputReportPassive& buffer);
-    void UpdatePassiveRightPadInput(const InputReportPassive& buffer);
-    void UpdatePassiveProPadInput(const InputReportPassive& buffer);
+    void UpdatePassiveLeftPadInput(JCState& state, const InputReportPassive& buffer);
+    void UpdatePassiveRightPadInput(JCState& state, const InputReportPassive& buffer);
+    void UpdatePassiveProPadInput(JCState& state, const InputReportPassive& buffer);
 
     /// Returns a calibrated joystick axis from raw axis data
     float GetAxisValue(uint16 raw_value, JoyStickAxisCalibration calibration) const;
@@ -73,8 +69,6 @@ private:
     JoyStickCalibration left_stick_calibration{};
     JoyStickCalibration right_stick_calibration{};
     MotionCalibration motion_calibration{};
-
-    JoyconCallbacks callbacks{};
 };
 
 } // namespace InputCommon::Joycon

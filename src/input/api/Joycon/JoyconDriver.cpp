@@ -7,7 +7,7 @@
 #include "input/api/Joycon/JoyconNfc.h"
 #include "input/api/Joycon/JoyconPoller.h"
 #include "input/api/Joycon/JoyconRumble.h"
-
+#pragma optimize("", off)
 namespace InputCommon::Joycon {
 JoyconDriver::JoyconDriver(std::size_t port_) : port{port_} {
     hidapi_handle = std::make_shared<JoyconHandle>();
@@ -174,7 +174,7 @@ void JoyconDriver::OnNewData(std::span<uint8> buffer) {
     if (nfc_protocol->IsPolling()) {
         if (amiibo_detected) {
             if (!nfc_protocol->HasAmiibo()) {
-                joycon_poller->UpdateAmiibo({});
+                //joycon_poller->UpdateAmiibo({});
                 amiibo_detected = false;
                 return;
             }
@@ -184,21 +184,22 @@ void JoyconDriver::OnNewData(std::span<uint8> buffer) {
             Joycon::TagInfo tag_info;
             const auto result = nfc_protocol->GetTagInfo(tag_info);
             if (result == DriverResult::Success) {
-                joycon_poller->UpdateAmiibo(tag_info);
+                //joycon_poller->UpdateAmiibo(tag_info);
                 amiibo_detected = true;
             }
         }
     }
 
+    state.valid = false;
     switch (report_mode) {
     case ReportMode::STANDARD_FULL_60HZ:
-        joycon_poller->ReadActiveMode(buffer, motion_status);
+        joycon_poller->ReadActiveMode(state, buffer, motion_status);
         break;
     case ReportMode::NFC_IR_MODE_60HZ:
-        joycon_poller->ReadNfcIRMode(buffer, motion_status);
+        joycon_poller->ReadNfcIRMode(state, buffer, motion_status);
         break;
     case ReportMode::SIMPLE_HID_MODE:
-        joycon_poller->ReadPassiveMode(buffer);
+        joycon_poller->ReadPassiveMode(state, buffer);
         break;
     default:
         break;
@@ -462,6 +463,10 @@ DriverResult JoyconDriver::WriteMifareData(std::span<const MifareWriteChunk> dat
     return result;
 }
 
+JCState JoyconDriver::GetState() {
+    return state;
+}
+
 bool JoyconDriver::IsConnected() const {
     std::scoped_lock lock{mutex};
     return is_connected.load();
@@ -507,10 +512,6 @@ SerialNumber JoyconDriver::GetHandleSerialNumber() const {
     return handle_serial_number;
 }
 
-void JoyconDriver::SetCallbacks(const JoyconCallbacks& callbacks) {
-    joycon_poller->SetCallbacks(callbacks);
-}
-
 DriverResult JoyconDriver::GetDeviceType(SDL_hid_device_info* device_info,
                                          ControllerType& controller_type) {
     static constexpr std::array<std::pair<uint32, ControllerType>, 6> supported_devices{
@@ -544,3 +545,4 @@ DriverResult JoyconDriver::GetSerialNumber(SDL_hid_device_info* device_info,
 }
 
 } // namespace InputCommon::Joycon
+#pragma optimize("", on)

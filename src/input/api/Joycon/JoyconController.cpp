@@ -1,7 +1,8 @@
 #include "input/api/Joycon/JoyconController.h"
-
+#include "input/api/Joycon/JoyconTypes.h"
+#pragma optimize("", off)
 JoyconController::JoyconController(uint32 type, uint32 index)
-	: base_type(fmt::format("{}_{}", type, index), fmt::format("Controller {}", index + 1)), m_type(type),
+	: base_type(fmt::format("{}_{}", type, index), fmt::format("{} {}", GetJoyconName(type), index + 1)), m_type(type),
 	  m_index(index)
 {
 	m_settings.axis.range = 1.20f;
@@ -56,24 +57,49 @@ std::string JoyconController::get_button_name(uint64 button) const
 {
 	switch (button)
 	{
-	case kButton0: return "A";
-	case kButton1: return "B";
-	case kButton2: return "X";
-	case kButton3: return "Y";
+	case kButton0: return "Dpad down";
+	case kButton1: return "Dpad up";
+	case kButton2: return "Dpad right";
+	case kButton3: return "Dpad left";
+	case kButton4: return "SR";
+	case kButton5: return "SL";
+	case kButton6: return "L";
+	case kButton7: return "ZL";
+	case kButton8: return "Y";
+	case kButton9: return "X";
+	case kButton10: return "B";
+	case kButton11: return "A";
+	case kButton12: return "SR";
+	case kButton13: return "SL";
 
-	case kButton4: return "Left";
-	case kButton5: return "Right";
-	case kButton6: return "Down";
-	case kButton7: return "Up";
+	case kButton14: return "R";
+	case kButton15: return "ZR";
+	case kButton16: return "Minus";
+	case kButton17: return "Plus";
 
-	case kButton8: return "Start";
-	case kButton9: return "Z";
+	case kButton18: return "Stick R";
+	case kButton19: return "Stick L";
 
-	case kButton10: return "Trigger R";
-	case kButton11: return "Trigger L";
+	case kButton20: return "Home";
+	case kButton21: return "Capture";
 	}
 
 	return base_type::get_button_name(button);
+}
+
+std::string JoyconController::GetJoyconName(uint32 type) const {
+	switch (type) {
+	case 1:
+		return "Left Joycon";
+	case 2:
+		return "Right Joycon";
+	case 3:
+		return "Pro Controller";
+	case 4:
+		return "Dual Joycon";
+	default:
+		return "Unknown Switch Controller";
+	}
 }
 
 ControllerState JoyconController::raw_state()
@@ -85,26 +111,20 @@ ControllerState JoyconController::raw_state()
 	const auto state = m_provider->get_state(m_type, m_index);
 	if (state.valid)
 	{
+
 		for (auto i = 0; i <= kButton11; ++i)
 		{
-			if (HAS_BIT(state.button, i))
-			{
-				//result.buttons.set(i);
-			}
+			result.buttons.SetButtonState(i, HAS_BIT(state.button, i));
 		}
 
 		// printf("(%d, %d) - (%d, %d) - (%d, %d)\n", state.lstick_x, state.lstick_y, state.rstick_x, state.rstick_y, state.lstick, state.rstick);
-		result.axis.x = (float)state.lstick_x / std::numeric_limits<uint8>::max();
-		result.axis.x = (result.axis.x * 2.0f) - 1.0f;
+		result.axis.x = state.lstick_x;
 
-		result.axis.y = (float)state.lstick_y / std::numeric_limits<uint8>::max();
-		result.axis.y = (result.axis.y * 2.0f) - 1.0f;
+		result.axis.y = state.lstick_y;
 
-		result.rotation.x = (float)state.rstick_x / std::numeric_limits<uint8>::max();
-		result.rotation.x = (result.rotation.x * 2.0f) - 1.0f;
+		result.rotation.x = state.rstick_x;
 
-		result.rotation.y = (float)state.rstick_y / std::numeric_limits<uint8>::max();
-		result.rotation.y = (result.rotation.y * 2.0f) - 1.0f;
+		result.rotation.y = state.rstick_y;
 
 
 		result.trigger.x = (float)state.lstick / std::numeric_limits<uint8>::max();
@@ -113,3 +133,4 @@ ControllerState JoyconController::raw_state()
 	
 	return result;
 }
+#pragma optimize("", on)

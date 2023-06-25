@@ -52,7 +52,7 @@ public:
                                 std::span<MifareReadData> out_data);
     DriverResult WriteMifareData(std::span<const MifareWriteChunk> request);
 
-    void SetCallbacks(const JoyconCallbacks& callbacks);
+    JCState GetState();
 
     // Returns device type from hidapi handle
     static DriverResult GetDeviceType(SDL_hid_device_info* device_info,
@@ -136,6 +136,7 @@ private:
     std::jthread input_thread;
     bool input_thread_running{};
     bool disable_input_thread{};
+    JCState state{};
 };
 
 } // namespace InputCommon::Joycon
